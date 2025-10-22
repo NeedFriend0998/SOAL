@@ -1,78 +1,69 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>Terminal Python Interaktif</title>
-<style>
-  body { background: #1e1e1e; color: #00ff95; font-family: monospace; display: flex; height: 100vh; align-items: center; justify-content: center; }
-  #terminal {
-    background: #000; color: #0f0;
-    width: 80%; height: 70%;
-    padding: 10px; border-radius: 10px;
-    overflow-y: auto; white-space: pre-wrap;
-  }
-  #input-line {
-    color: #0f0;
-    border: none;
-    background: none;
-    width: 90%;
-    outline: none;
-    font-family: monospace;
-  }
-</style>
+<title>KUIS Pernapasan</title>
 </head>
 <body>
-<div id="terminal"></div>
-<script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+<h1>KUIS ACAK REPEAT TANPA DOUBEL</h1>
+<p>Soal bisa terulang, tapi tidak dua kali berturut-turut.</p>
+<p>Ketik 'exit' untuk keluar.</p>
 <script>
-let pyodideReady = false;
-let pyodide;
-
-async function main() {
-  document.getElementById("terminal").innerText = "Loading Pyodide...\n";
-  pyodide = await loadPyodide();
-  pyodideReady = true;
-  document.getElementById("terminal").innerText += "Pyodide siap!\n\n";
-  startInteractiveTerminal();
+var soal_jawaban = [
+    {"soal": "apa fungsi Trakea?", "jawaban": ["menangkap benda asing yang masuk ke pernapasan", "menyaring debu jika masuk ke pernapasan", "menangkap benda asing jika masuk pernapasan", "menyaring debu yang masuk pernapasan", "menangkap benda asing yang masuk ke pernapasan", "menyaring benda asing yang masuk ke pernapasan", "menyaring benda asing yang masuk pernapasan"]},
+    {"soal": "apa fungsi Bronkus?", "jawaban": ["sebagai saluran udara"]},
+    {"soal": "apa fungsi Bronkiolus?", "jawaban": ["tempat tersusunnya banyak pembuluh kapiler", "tersusunnya banyak pembuluh kapiler"]},
+    {"soal": "apa fungsi paru²?", "jawaban": ["organ pernapasan utama"]},
+    {"soal": "apa fungsi faring?", "jawaban": ["meneruskan udara setelah ke rongga hidung", "meneruskan udara dari rongga hidung"]},
+    {"soal": "apa fungsi rongga hidung?", "jawaban": ["menyaring udara yang masuk", "menyaring udara", "menghirup oksigen", "bernapas"]}
+];
+function normalize(text) {
+    return (text || "").toLowerCase().trim().replace(/[^0-9a-z\s]/g, '').replace(/\s+/g, ' ');
 }
-
-function printToTerminal(text) {
-  const term = document.getElementById("terminal");
-  term.innerHTML += text + "\n";
-  term.scrollTop = term.scrollHeight;
-}
-
-async function startInteractiveTerminal() {
-  // Define a Python function that uses custom input
-  await pyodide.runPythonAsync(`
-print("Hi")
-  `);
-
-  let buffer = "";
-  window.get_input = () => {
-    return new Promise(resolve => {
-      const term = document.getElementById("terminal");
-      const input = document.createElement("input");
-      input.id = "input-line";
-      term.appendChild(input);
-      input.focus();
-      input.addEventListener("keydown", async e => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          const val = input.value;
-          term.removeChild(input);
-          term.innerHTML += val + "\n";
-          resolve(val);
+function quiz() {
+    var jumlah = parseInt(prompt("Mau berapa soal? (misal 10):", "10")) || 10;
+    var skor = 0, last = null, asked = 0;
+    var salah_list = [];
+    for (var i = 1; i <= jumlah; i++) {
+        asked++;
+        var item;
+        do {
+            item = soal_jawaban[Math.floor(Math.random()*soal_jawaban.length)];
+        } while (item === last);
+        last = item;
+        var jawaban = prompt("Soal " + i + "/" + jumlah + ": " + item.soal);
+        if (jawaban === null || jawaban.toLowerCase() === "exit") {
+            alert("Keluar dari kuis...");
+            break;
         }
-      });
-    });
-  };
-
-  printToTerminal("Menjalankan program Python...\n");
-  await pyodide.runPythonAsync("main()");
+        var u = normalize(jawaban);
+        var correct = item.jawaban.some(ans => normalize(ans) === u);
+        if (correct) {
+            alert("✅ Benar!");
+            skor++;
+        } else {
+            alert("❌ Salah. Jawaban benar: " + item.jawaban[0]);
+            salah_list.push({
+                soal: item.soal,
+                jawaban_user: jawaban,
+                jawaban_benar: item.jawaban
+            });
+        }
+    }
+    var percent = (skor/asked)*100;
+    var msg = "=== HASIL AKHIR ===\nSkor: " + skor + "/" + asked + "\nPersentase: " + percent.toFixed(2) + "%";
+    if (salah_list.length) {
+        msg += "\n\nSoal yang salah:\n";
+        for (var k = 0; k < salah_list.length; k++) {
+            var s = salah_list[k];
+            msg += (k+1) + ". " + s.soal + "\n   Jawaban kamu: " + s.jawaban_user + "\n   Jawaban benar: " + s.jawaban_benar.join(", ") + "\n";
+        }
+    } else {
+        msg += "\n\nMantap! Semua benar 🎉";
+    }
+    alert(msg);
 }
-
-main();
+quiz();
 </script>
 </body>
 </html>
