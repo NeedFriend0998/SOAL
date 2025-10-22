@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Terminal Python Interaktif</title>
+<style>
+  body { background: #1e1e1e; color: #00ff95; font-family: monospace; display: flex; height: 100vh; align-items: center; justify-content: center; }
+  #terminal {
+    background: #000; color: #0f0;
+    width: 80%; height: 70%;
+    padding: 10px; border-radius: 10px;
+    overflow-y: auto; white-space: pre-wrap;
+  }
+  #input-line {
+    color: #0f0;
+    border: none;
+    background: none;
+    width: 90%;
+    outline: none;
+    font-family: monospace;
+  }
+</style>
+</head>
+<body>
+<div id="terminal"></div>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+<script>
+let pyodideReady = false;
+let pyodide;
+
+async function main() {
+  document.getElementById("terminal").innerText = "Loading Pyodide...\n";
+  pyodide = await loadPyodide();
+  pyodideReady = true;
+  document.getElementById("terminal").innerText += "Pyodide siap!\n\n";
+  startInteractiveTerminal();
+}
+
+function printToTerminal(text) {
+  const term = document.getElementById("terminal");
+  term.innerHTML += text + "\n";
+  term.scrollTop = term.scrollHeight;
+}
+
+async function startInteractiveTerminal() {
+  // Define a Python function that uses custom input
+  await pyodide.runPythonAsync(`
+import js
+
+def py_input(prompt=""):
+    js.printToTerminal(prompt)
+    value = js.get_input()  # call JS function to get input
+    return value
+
+def main():
+    js.printToTerminal("=== KUIS INTERAKTIF ===")
+    name = py_input("Siapa nama kamu? ")
+    js.printToTerminal(f"Halo, {name}!")
+    color = py_input("Warna favoritmu apa? ")
+    js.printToTerminal(f"Warna {color} keren banget!")
+    js.printToTerminal("Program selesai!")
+
+  `);
+
+  let buffer = "";
+  window.get_input = () => {
+    return new Promise(resolve => {
+      const term = document.getElementById("terminal");
+      const input = document.createElement("input");
+      input.id = "input-line";
+      term.appendChild(input);
+      input.focus();
+      input.addEventListener("keydown", async e => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const val = input.value;
+          term.removeChild(input);
+          term.innerHTML += val + "\n";
+          resolve(val);
+        }
+      });
+    });
+  };
+
+  printToTerminal("Menjalankan program Python...\n");
+  await pyodide.runPythonAsync("main()");
+}
+
+main();
+</script>
+</body>
+</html>
