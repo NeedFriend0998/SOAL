@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Kuis Python di Browser</title>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+  <style>
+    body {
+      background: #111;
+      color: #0f0;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    #terminal {
+      width: 80%;
+      height: 70vh;
+      border: 2px solid #0f0;
+      padding: 10px;
+      overflow-y: auto;
+      background: black;
+      white-space: pre-wrap;
+    }
+    #input-line {
+      width: 80%;
+      border: none;
+      background: transparent;
+      color: #0f0;
+      font-family: monospace;
+      outline: none;
+    }
+    button {
+      margin-bottom: 10px;
+      background: #0f0;
+      color: black;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <button onclick="runMain()">▶ Jalankan Kuis</button>
+  <div id="terminal"></div>
+  <input id="input-line" placeholder="Ketik di sini..." onkeydown="handleInput(event)" disabled>
+
+  <script>
+    let pyodideReady = loadPyodide();
+    let pyodide;
+    let waitingForInput = false;
+    let inputResolve;
+
+    async function runMain() {
+      const term = document.getElementById("terminal");
+      term.textContent = "";
+      appendToTerminal("Loading Pyodide...\n");
+      pyodide = await pyodideReady;
+      appendToTerminal("Pyodide siap!\n\n");
+
+      const response = await fetch("main.py");
+      const code = await response.text();
+
+      // Tangkap print()
+      pyodide.setStdout({
+        batched: (msg) => appendToTerminal(msg)
+      });
+      pyodide.setStderr({
+        batched: (msg) => appendToTerminal("\n[Error] " + msg)
+      });
+
+      // Override input() agar bisa lewat JS
+      pyodide.runPython(`
+from js import request_input
+def input(prompt=""):
+    print(prompt, end="")
+    return request_input()
+`);
+
+      appendToTerminal("Menjalankan main.py...\n\n");
+      try {
+        await pyodide.runPythonAsync(code);
+        appendToTerminal("\n[Program selesai]");
+      } catch (err) {
+        appendToTerminal("\n[Error] " + err);
+      }
+    }
+
+    function appendToTerminal(text) {
+      const term = document.getElementById("terminal");
+      term.textContent += text;
+      term.scrollTop = term.scrollHeight;
+    }
+
+    async function request_input() {
+      waitingForInput = true;
+      const inputField = document.getElementById("input-line");
+      inputField.disabled = false;
+      inputField.focus();
+      return new Promise((resolve) => (inputResolve = resolve));
+    }
+
+    function handleInput(event) {
+      if (event.key === "Enter" && waitingForInput) {
+        const field = document.getElementById("input-line");
+        const value = field.value;
+        appendToTerminal(value + "\n");
+        field.value = "";
+        field.disabled = true;
+        waitingForInput = false;
+        inputResolve(value);
+      }
+    }
+  </script>
+</body>
+</html>
