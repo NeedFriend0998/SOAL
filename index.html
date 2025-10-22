@@ -17,9 +17,24 @@
       const pyodide = await pyodideReady;
       const response = await fetch("main.py");
       const code = await response.text();
+
+      // Redirect print() ke fungsi JavaScript
+      let output = "";
+      pyodide.setStdout({
+        batched: (msg) => {
+          output += msg;
+          document.getElementById("output").textContent = output;
+        }
+      });
+      pyodide.setStderr({
+        batched: (msg) => {
+          output += "\n[Error] " + msg;
+          document.getElementById("output").textContent = output;
+        }
+      });
+
       try {
-        let result = await pyodide.runPythonAsync(code);
-        document.getElementById("output").textContent = result ?? "(Tidak ada output)";
+        await pyodide.runPythonAsync(code);
       } catch (err) {
         document.getElementById("output").textContent = err;
       }
